@@ -17,7 +17,13 @@ Incoming call
 ┌────────────────────────┐
 │ IncomingCallService    │  Android CallScreeningService
 │ (call screening role)  │  – respondToCall(allow)
-└──────────┬─────────────┘  – extracts phone number
+└──────────┬─────────────┘  – extracts phone number, starts foreground service
+           │
+           ▼
+┌────────────────────────┐
+│ MorseForegroundService │  – FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+│                        │  – keeps the process alive while the phone rings
+└──────────┬─────────────┘  – delegates playback to MorseCodeAudioPlayer
            │
            ▼
 ┌────────────────────────┐
@@ -28,14 +34,14 @@ Incoming call
            │  ".... .. / - .... . .-. ."
            ▼
 ┌────────────────────────┐
-│ CallAudioPlayer        │  – TelephonyCallback observes RINGING → IDLE
+│ MorseCodeAudioPlayer   │  – TelephonyCallback observes RINGING → IDLE
 │                        │  – stops playback once the call is answered
 └──────────┬─────────────┘  – hard 60 s safety timeout
            │
            ▼
 ┌────────────────────────┐
-│ SineWaveAudioGenerator │  – AudioTrack (PCM 16-bit, 44.1 kHz)
-│ (AudioPlayer port)     │  – sine tone with click-suppressing fade envelope
+│ MorseCodeGenerator     │  – AudioTrack (PCM 16-bit, 44.1 kHz)
+│ (PCM buffer synthesis) │  – sine tone with click-suppressing fade envelope
 └────────────────────────┘  – usage = NOTIFICATION_RINGTONE
 ```
 
@@ -50,17 +56,17 @@ The codebase follows a small Clean-Architecture-style layering inside a single G
 
 | Layer        | Package                                                   | Responsibility                                                  |
 |--------------|-----------------------------------------------------------|-----------------------------------------------------------------|
-| **domain**   | `com.uschwar.morseringer.domain`                          | Pure Kotlin — `MorseEncoder`, `MorseSettings`, ports, use cases |
-| **data**     | `com.uschwar.morseringer.data`                            | Android implementations — `SineWaveAudioGenerator`, repos       |
-| **service**  | `com.uschwar.morseringer.service`                         | Telephony glue — `IncomingCallService`, `CallAudioPlayer`       |
+| **domain**   | `com.uschwar.morseringer.domain`                          | Pure Kotlin — `MorseEncoder`, `MorseSettings`, repos, use cases |
+| **data**     | `com.uschwar.morseringer.data`                            | Android implementations — `MorseCodeAudioPlayer`, `MorseCodeGenerator`, repos |
+| **service**  | `com.uschwar.morseringer.service`                         | Telephony glue — `IncomingCallService`, `MorseForegroundService` |
 | **ui**       | `com.uschwar.morseringer.ui`                              | Jetpack Compose — `MainScreen`, `SettingsViewModel`             |
 | **DI**       | `MorseRingerApp.AppContainer`                             | Manual constructor injection (no DI framework)                  |
 
 ### Key design points
 
-- **`AudioPlayer` port** (`domain.port.AudioPlayer`) decouples the domain from `android.media.AudioTrack`. Tests can substitute a fake.
+- **`MorseCodeGenerator`** isolates sine-wave PCM synthesis (and the click-suppressing fade envelope) from the `AudioTrack` playback hardware management in `MorseCodeAudioPlayer`. This keeps signal generation easy to unit-test and reuse for both the looping ringtone path and the one-shot in-app preview.
 - **`MorseSettings`** owns all timing / range constants (defaults, min/max for sliders, the `1200/WPM` unit-duration formula). Both UI and persistence layers depend on these constants instead of duplicating numbers.
-- **`CallAudioPlayer`** receives its dependencies (`AudioPlayer`, `SettingsRepository`, `ProcessIncomingCallUseCase`) via the constructor — no service-locator lookups inside.
+- **`MorseCodeAudioPlayer`** observes the telephony state via `TelephonyCallback` and cancels playback as soon as the call leaves the RINGING state (with a hard 60 s safety timeout). It is invoked from `MorseForegroundService`, which keeps the process alive during ringing via `FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK`.
 - **Persistence**: WPM and pitch are stored in Jetpack DataStore (`morse_settings`), exposed as a `Flow<MorseSettings>`.
 
 ## Required permissions
@@ -92,8 +98,8 @@ Contact information is read **on-device only**, used solely to translate caller 
 Requirements:
 
 - JDK 21
-- Android SDK 37 (compileSdk) / minSdk 31 / targetSdk 36
-- Android Gradle Plugin 9.2.0 · Kotlin 2.2.10
+- Android SDK 37 (compileSdk) / minSdk 31 / targetSdk 37
+- Android Gradle Plugin 9.2.0 · Kotlin 2.3.21
 
 ### Release signing
 
@@ -141,13 +147,12 @@ app/
     │   │   ├── domain/
     │   │   │   ├── MorseEncoder.kt
     │   │   │   ├── model/                 ← MorseSettings
-    │   │   │   ├── port/AudioPlayer.kt
     │   │   │   ├── repo/ContactRepository.kt
     │   │   │   └── usecase/               ← TextToMorseUseCase, ProcessIncomingCallUseCase
     │   │   ├── data/
-    │   │   │   ├── audio/SineWaveAudioGenerator.kt
+    │   │   │   ├── audio/                 ← MorseCodeAudioPlayer, MorseCodeGenerator
     │   │   │   └── repo/                  ← SettingsRepository, ContactRepositoryImpl
-    │   │   ├── service/                   ← IncomingCallService, CallAudioPlayer
+    │   │   ├── service/                   ← IncomingCallService, MorseForegroundService
     │   │   └── ui/                        ← MainActivity, MainScreen, SettingsViewModel, theme/
     │   └── res/                           ← strings (en, de), themes, icons
     └── test/java/                         ← JUnit 5 unit tests
