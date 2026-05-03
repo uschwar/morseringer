@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification -->
+    <string name="notification_channel_description">Spielt Morsecode-Audio für eingehende Anrufe ab</string>
+    <string name="notification_playing">Anrufername wird gemorst…</string>
+    <string name="notification_monitoring">Überwache Eingehende Anrufe...</string>
+
+    <!-- Permissions Card -->
+    <string name="permissions_title">Berechtigungen</string>
+    <string name="permission_read_contacts">Kontakte lesen</string>
+    <string name="permission_phone_state">Telefonstatus</string>
+    <string name="permission_call_screening">Anruf-Screening-App</string>
+    <string name="permission_granted">Erteilt</string>
+    <string name="permission_not_granted">Nicht erteilt</string>
+    <string name="btn_grant_permissions">Berechtigungen erteilen</string>
+    <string name="btn_set_call_screening">Als Anruf-Screening-App festlegen</string>
+
+    <!-- Settings Card -->
+    <string name="settings_title">Morseton Konfiguration</string>
+    <string name="settings_speed">Geschwindigkeit: %d WPM</string>
+    <string name="settings_pitch">Tonhöhe: %d Hz</string>
+
+    <!-- Preview Card -->
+    <string name="preview_title">Vorschau</string>
+    <string name="preview_text_label">Zu morsender Text</string>
+    <string name="btn_play_preview">Vorschau abspielen</string>
+    <string name="btn_stop">Stopp</string>
+
+    <!-- Status Card -->
+    <string name="status_title">Status</string>
+    <string name="status_ready">Alles klar – Warte auf eingehende Anrufe.</string>
+    <string name="status_not_ready">Nicht bereit – Bitte erteile alle oben genannten Berechtigungen.</string>
+    <string name="status_silent_warning">Achtung: Das Telefon ist im Lautlos-/Vibrationsmodus. Der Morsecode wird nicht hörbar sein.</string>
+
+    <!-- Ringtone Shortcut -->
+    <string name="ringtone_shortcut_title">Klingelton Einstellung</string>
+    <string name="ringtone_shortcut_description">Um zu vermeiden, dass der Morseton mit dem Klingelton gemischt wird, stelle den Klingelton deines Telefons in den Systemeinstellungen auf \"Kein\" oder \"Lautlos\".</string>
+    <string name="btn_open_sound_settings">Toneinstellungen öffnen</string>
+
+    <!-- Prominent Disclosure Dialog -->
+    <string name="disclosure_title">Berechtigungen erforderlich</string>
+    <string name="disclosure_message">MorseRinger erfasst Kontaktinformationen ausschließlich, um die Namen eingehender Anrufer in Morsecode-Audio zu übersetzen. Diese Daten werden lokal auf Ihrem Gerät verarbeitet und niemals weitergegeben, extern gespeichert oder übertragen.</string>
+    <string name="disclosure_accept">Akzeptieren</string>
+    <string name="disclosure_decline">Ablehnen</string>
+</resources>

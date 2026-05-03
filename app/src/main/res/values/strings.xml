@@ -1,0 +1,47 @@
+<resources>
+    <string name="app_name" translatable="false">MorseRinger</string>
+
+    <!-- Notification -->
+    <string name="notification_channel_name" translatable="false">Morse Ringer Service</string>
+    <string name="notification_channel_description">Plays Morse code audio for incoming calls</string>
+    <string name="notification_playing">Morsing caller name…</string>
+    <string name="notification_monitoring">Monitoring for incoming calls…</string>
+
+    <!-- Permissions Card -->
+    <string name="permissions_title">Permissions</string>
+    <string name="permission_read_contacts">Read Contacts</string>
+    <string name="permission_phone_state">Phone State</string>
+    <string name="permission_call_screening">Call Screening App</string>
+    <string name="permission_granted">Granted</string>
+    <string name="permission_not_granted">Not Granted</string>
+    <string name="btn_grant_permissions">Grant Permissions</string>
+    <string name="btn_set_call_screening">Set as Call Screening App</string>
+
+    <!-- Settings Card -->
+    <string name="settings_title">Morse Sound Configuration</string>
+    <string name="settings_speed">Speed: %d WPM</string>
+    <string name="settings_pitch">Pitch: %d Hz</string>
+
+    <!-- Preview Card -->
+    <string name="preview_title">Preview</string>
+    <string name="preview_text_label">Text to morse</string>
+    <string name="btn_play_preview">Play Preview</string>
+    <string name="btn_stop">Stop</string>
+
+    <!-- Status Card -->
+    <string name="status_title">Status</string>
+    <string name="status_ready">All set — Waiting for incoming calls.</string>
+    <string name="status_not_ready">Not Ready — Please grant all permissions above.</string>
+    <string name="status_silent_warning">Warning: Phone is in silent/vibrate mode. You will not hear the Morse code.</string>
+
+    <!-- Ringtone Shortcut -->
+    <string name="ringtone_shortcut_title">Ringtone Configuration</string>
+    <string name="ringtone_shortcut_description">To avoid mixing morse tone and your ringtone, set your ringtone to \"None\" or \"Silent\" in system settings..</string>
+    <string name="btn_open_sound_settings">Open Sound Settings</string>
+
+    <!-- Prominent Disclosure Dialog -->
+    <string name="disclosure_title">Permissions Required</string>
+    <string name="disclosure_message">MorseRinger collects contact information solely to translate incoming caller names into Morse code audio. This data is processed locally on your device and is never shared, stored remotely, or transmitted.</string>
+    <string name="disclosure_accept">Accept</string>
+    <string name="disclosure_decline">Decline</string>
+</resources>

@@ -30,4 +30,4 @@ MorseRinger is built with your privacy in mind. It operates entirely locally on 
 
 ## Support
 
-If you encounter any issues or have questions, please reach out via our GitHub repository or contact the developer directly.
+If you encounter any issues or have questions, please reach out via my GitHub repository <https://github.com/uschwar/morseringer>.
