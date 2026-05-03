@@ -5,7 +5,7 @@ title: Terms of Service
 
 # Terms of Service for MorseRinger
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-05-03
 
 Welcome to MorseRinger. By downloading or using the app, these terms will automatically apply to you. You should make sure therefore that you read them carefully before using the app.
 

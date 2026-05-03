@@ -19,8 +19,7 @@ title: Home
 
 1.  **Grant Permissions:** Upon first launch, MorseRinger will ask for necessary permissions (Contacts, Phone State, and Call Screening Role).
 2.  **Configure Settings:** Set your preferred Morse code playback speed and pitch in the app settings.
-3.  **Enable Service:** Ensure the MorseRinger service is running.
-4.  **Receive Calls:** When a call comes in, the app suppresses the default ringtone and plays the caller's name in Morse code.
+3.  **Receive Calls:** When a call comes in, the app suppresses the default ringtone and plays the caller's name in Morse code.
 
 ## Privacy & Legal
 

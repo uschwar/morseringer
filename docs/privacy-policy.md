@@ -5,7 +5,7 @@ title: Privacy Policy
 
 # Privacy Policy for MorseRinger
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-05-03
 
 MorseRinger ("the App") is an Android application designed to translate incoming caller names into Morse code audio. 
 
