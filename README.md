@@ -4,6 +4,9 @@ An Android app that turns incoming-caller identification into a **Morse code aud
 
 If the caller is not in your contacts, the literal string `Unknown` is keyed instead.
 
+## Get the app here:
+<https://play.google.com/store/apps/details?id=com.uschwar.morseringer>
+
 ## Why does this exist?
 
 For amateur-radio operators and Morse-code learners, the constant ringing of a phone is wasted training time. MorseRinger replaces the conventional ringtone with a short, repeating Morse transmission of who is calling, so you can practice copy in everyday situations and identify callers without looking at the screen.
@@ -26,7 +29,7 @@ Incoming call
 └──────────┬─────────────┘  – delegates playback to MorseCodeAudioPlayer
            │
            ▼
-┌────────────────────────┐
+┌────────────────────────────┐
 │ ProcessIncomingCallUseCase │
 │  ContactRepository → name  │
 │  TextToMorseUseCase → dits │

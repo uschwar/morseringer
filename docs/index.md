@@ -7,6 +7,9 @@ title: Home
 
 **MorseRinger** is an innovative Android application that replaces or augments your standard incoming call ringtone with a Morse code audio representation of the caller's name. This allows you to identify who is calling audibly, without even having to look at your device.
 
+## Get the app here:
+<https://play.google.com/store/apps/details?id=com.uschwar.morseringer>
+
 ## Core Features
 
 *   **Incoming Call Interception:** Automatically detects incoming calls.
