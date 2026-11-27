@@ -32,8 +32,8 @@ android {
         applicationId = "com.uschwar.morseringer"
         minSdk = 31
         targetSdk = 37
-        versionCode = 4
-        versionName = "26.05.0_code-camper"
+        versionCode = 5
+        versionName = "26.05.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
