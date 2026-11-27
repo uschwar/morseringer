@@ -76,7 +76,7 @@ The codebase follows a small Clean-Architecture-style layering inside a single G
 
 | Permission                    | Purpose                                         |
 |-------------------------------|-------------------------------------------------|
-| `READ_CONTACTS`               | Resolve caller phone number → display name     |
+| `READ_CONTACTS`               | Resolve caller phone number → display name (see below) |
 | `READ_PHONE_STATE`            | Detect when the call is answered/declined      |
 | `ANSWER_PHONE_CALLS`          | Required for the Call Screening role            |
 | `POST_NOTIFICATIONS`          | System notifications (Android 13+)             |
@@ -85,6 +85,12 @@ The codebase follows a small Clean-Architecture-style layering inside a single G
 In addition, the user must grant the **Call Screening App** role, which is requested in-app via `RoleManager`.
 
 A prominent disclosure dialog explains contact data usage before the runtime permission prompt.
+
+### Why `READ_CONTACTS` and not the Contact Picker
+
+Since API 37, Google Play only allows `READ_CONTACTS` when the Android Contact Picker is not sufficient, and requires a Play Console declaration. MorseRinger's core function is to identify an *arbitrary* incoming caller while the phone rings, with no user interaction. The Contact Picker only returns contacts the user picks manually in the foreground, so it cannot do that. (`Call.Details.getContactDisplayName()` is no alternative either: it also requires `READ_CONTACTS`.)
+
+Access is kept minimal: a single `ContactsContract.PhoneLookup` query for the ringing number, projecting only `DISPLAY_NAME`. Nothing else is read, and the result is not cached.
 
 ## Privacy
 
@@ -100,9 +106,9 @@ Contact information is read **on-device only**, used solely to translate caller 
 
 Requirements:
 
-- JDK 21
-- Android SDK 37 (compileSdk) / minSdk 31 / targetSdk 37
-- Android Gradle Plugin 9.2.0 · Kotlin 2.3.21
+- JDK 21 (auto-provisioned via the Gradle toolchain resolver if not installed)
+- Android SDK 37 (compileSdk) / minSdk 31 / targetSdk 36 (see `app/build.gradle.kts` for why not 37)
+- Android Gradle Plugin 9.5.3 · Kotlin 2.3.21
 
 ### Release signing
 

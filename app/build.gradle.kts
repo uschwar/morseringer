@@ -31,9 +31,13 @@ android {
     defaultConfig {
         applicationId = "com.uschwar.morseringer"
         minSdk = 31
-        targetSdk = 37
-        versionCode = 4
-        versionName = "26.05.0_code-camper"
+        // Stay on 36: Android 17's background audio hardening mutes apps that
+        // target 37 unless their foreground service has while-in-use
+        // capability, which a service started from call screening never gets.
+        // https://developer.android.com/about/versions/17/changes/bg-audio
+        targetSdk = 36
+        versionCode = 5
+        versionName = "26.05.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -66,9 +70,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
     kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
-        }
+        // Compiles with JDK 21 (provisioned via foojay if missing); also sets jvmTarget.
+        jvmToolchain(21)
     }
     buildFeatures {
         compose = true

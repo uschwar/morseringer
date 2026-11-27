@@ -1,6 +1,7 @@
 package com.uschwar.morseringer.data.audio
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
@@ -34,9 +35,11 @@ class MorseCodeAudioPlayer(private val context: Context) {
     private val telephonyManager = context.getSystemService(TelephonyManager::class.java)
     private val audioManager = context.getSystemService(AudioManager::class.java)
 
+    @Volatile
     private var playbackJob: Job? = null
     private val playerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    @Volatile
     private var telephonyCallback: TelephonyCallback? = null
     private var audioTrack: AudioTrack? = null
     private val trackLock = Any()
@@ -46,10 +49,22 @@ class MorseCodeAudioPlayer(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     fun playMorse(phoneNumber: String) {
-        stopPlaybackOnly()
+        Log.i(tag, "playMorse: start (importance=${processImportance()})")
+        stopPlaybackOnly("new incoming call")
         registerTelephonyObserver()
 
-        playbackJob = playerScope.launch {
+        // LAZY start: `playbackJob` must be assigned before the body runs,
+        // because the streaming loop checks `playbackJob?.isActive`.
+        val job = playerScope.launch(start = CoroutineStart.LAZY) {
+            val thisJob = coroutineContext[Job]
+            // Safety net: never ring longer than MAX_RINGING_MS, e.g. when the
+            // telephony observer could not be registered or missed a state.
+            launch {
+                delay(MAX_RINGING_MS)
+                Log.w(tag, "Safety timeout (${MAX_RINGING_MS} ms) reached - stopping playback")
+                thisJob?.cancel()
+            }
+
             val focusRequest = requestAudioFocus()
 
             try {
@@ -57,16 +72,25 @@ class MorseCodeAudioPlayer(private val context: Context) {
                 val morseSequence = container.processIncomingCallUseCase(phoneNumber)
                 val settings = container.settingsRepository.settingsFlow.first()
 
+                Log.d(tag, "playMorse: ${morseSequence.length} symbols, ${settings.wpm} WPM, ${settings.frequencyHz} Hz")
+
                 playContinuousLoop(morseSequence, settings)
             } catch (_: CancellationException) {
-                // Playback stopped intentionally
+                // Playback stopped intentionally or by the safety timeout
+                Log.i(tag, "playMorse: cancelled")
             } catch (e: Exception) {
                 Log.e(tag, "Unexpected error during playback", e)
             } finally {
                 forceReleaseHardwareResources()
                 abandonAudioFocus(focusRequest)
+                // Still the current job => playback ended on its own (timeout,
+                // error, no AudioTrack) rather than via stop()/a newer request.
+                // Tear down the foreground service so its notification goes away.
+                if (playbackJob === thisJob) stop("playback ended on its own")
             }
         }
+        playbackJob = job
+        job.start()
     }
 
     private fun requestAudioFocus(): AudioFocusRequest? {
@@ -78,10 +102,13 @@ class MorseCodeAudioPlayer(private val context: Context) {
         val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(playbackAttributes)
             .setAcceptsDelayedFocusGain(true)
-            .setOnAudioFocusChangeListener { }
+            .setOnAudioFocusChangeListener { change ->
+                Log.i(tag, "Audio focus changed: ${focusChangeName(change)} (importance=${processImportance()})")
+            }
             .build()
 
         val result = audioManager.requestAudioFocus(focusRequest)
+        Log.i(tag, "Audio focus request result=$result (1=granted, 0=failed, 2=delayed)")
         return if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) focusRequest else null
     }
 
@@ -90,9 +117,9 @@ class MorseCodeAudioPlayer(private val context: Context) {
     }
 
     fun playPreview(morseSequence: String) {
-        stopPlaybackOnly()
+        stopPlaybackOnly("preview")
 
-        playbackJob = playerScope.launch {
+        val job = playerScope.launch(start = CoroutineStart.LAZY) {
             try {
                 val container = (context.applicationContext as MorseRingerApp).container
                 val settings = container.settingsRepository.settingsFlow.first()
@@ -113,10 +140,13 @@ class MorseCodeAudioPlayer(private val context: Context) {
                 forceReleaseHardwareResources()
             }
         }
+        playbackJob = job
+        job.start()
     }
 
-    fun stop() {
-        stopPlaybackOnly()
+    /** [reason] is logged only; it says who stopped playback. */
+    fun stop(reason: String = "unspecified") {
+        stopPlaybackOnly(reason)
 
         // Also stop the foreground service if it's running
         context.stopService(Intent(context, MorseForegroundService::class.java))
@@ -126,7 +156,8 @@ class MorseCodeAudioPlayer(private val context: Context) {
      * Clears active playback and releases hardware resources WITHOUT 
      * stopping the Android Foreground Service.
      */
-    fun stopPlaybackOnly() {
+    fun stopPlaybackOnly(reason: String = "unspecified") {
+        if (playbackJob != null) Log.i(tag, "Stopping playback: $reason")
         playbackJob?.cancel()
         playbackJob = null
 
@@ -194,12 +225,24 @@ class MorseCodeAudioPlayer(private val context: Context) {
         // Pre-render the gap once: 1 second of silence between repetitions.
         val gapSilence = ShortArray(MorseCodeGenerator.SAMPLE_RATE_HZ)
 
+        val startedAt = System.currentTimeMillis()
+        var iteration = 0
         while (playbackJob?.isActive == true) {
+            iteration++
+            Log.d(
+                tag,
+                "Loop #$iteration at ${System.currentTimeMillis() - startedAt} ms: " +
+                    "playState=${track.playState} (3=playing), " +
+                    "head=${track.playbackHeadPosition}, " +
+                    "underruns=${track.underrunCount}, " +
+                    "importance=${processImportance()}",
+            )
             streamMorseToHardware(sequence, settings, track)
             if (playbackJob?.isActive != true) break
             // Active silence keeps the AudioTrack in PLAYING state.
-            track.write(gapSilence, 0, gapSilence.size)
+            checkedWrite(track, gapSilence)
         }
+        Log.i(tag, "Loop finished after $iteration iteration(s), ${System.currentTimeMillis() - startedAt} ms")
         // Track is released by the outer coroutine `finally` (or `stop()`).
     }
 
@@ -250,15 +293,30 @@ class MorseCodeAudioPlayer(private val context: Context) {
 
     private fun writeTone(track: AudioTrack, units: Int, settings: MorseSettings): Int {
         val data = generator.generateTone(units, settings)
-        track.write(data, 0, data.size)
+        checkedWrite(track, data)
         return data.size
     }
 
     private fun writeSilence(track: AudioTrack, units: Int, settings: MorseSettings): Int {
         val data = generator.generateSilence(units, settings)
         if (data.isEmpty()) return 0
-        track.write(data, 0, data.size)
+        checkedWrite(track, data)
         return data.size
+    }
+
+    /**
+     * Writes [data] and fails loudly on an error code. Without this, a dead
+     * track (e.g. ERROR_DEAD_OBJECT = -6) returns instantly and the loop spins
+     * silently with no audio and no log.
+     */
+    private fun checkedWrite(track: AudioTrack, data: ShortArray) {
+        val result = track.write(data, 0, data.size)
+        if (result < 0) {
+            throw IllegalStateException("AudioTrack.write failed: $result (playState=${track.playState})")
+        }
+        if (result < data.size) {
+            Log.w(tag, "AudioTrack.write short: $result of ${data.size} (playState=${track.playState})")
+        }
     }
 
     private fun createStreamingAudioTrack(unitSamples: Int): AudioTrack? {
@@ -351,9 +409,18 @@ class MorseCodeAudioPlayer(private val context: Context) {
         if (telephonyCallback != null) return
 
         telephonyCallback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+            // Call screening runs before the phone starts ringing, and the
+            // callback reports the current state right after registration.
+            // That initial state can still be IDLE, so IDLE only counts as
+            // "call ended" once RINGING has been seen.
+            private var hasRung = false
+
             override fun onCallStateChanged(state: Int) {
-                if (state == TelephonyManager.CALL_STATE_OFFHOOK || state == TelephonyManager.CALL_STATE_IDLE) {
-                    stop()
+                Log.i(tag, "Call state: ${callStateName(state)} (hasRung=$hasRung)")
+                when (state) {
+                    TelephonyManager.CALL_STATE_RINGING -> hasRung = true
+                    TelephonyManager.CALL_STATE_OFFHOOK -> stop("call answered (OFFHOOK)")
+                    TelephonyManager.CALL_STATE_IDLE -> if (hasRung) stop("call ended (IDLE after RINGING)")
                 }
             }
         }.also {
@@ -363,6 +430,32 @@ class MorseCodeAudioPlayer(private val context: Context) {
                 Log.e(tag, "Telephony registration failed", e)
                 telephonyCallback = null
             }
+        }
+    }
+
+    companion object {
+        /** Hard upper bound for incoming-call playback. */
+        const val MAX_RINGING_MS = 60_000L
+
+        /** e.g. 100 = foreground, 125 = foreground service, 400 = cached. */
+        private fun processImportance(): Int =
+            ActivityManager.RunningAppProcessInfo()
+                .also { ActivityManager.getMyMemoryState(it) }
+                .importance
+
+        private fun callStateName(state: Int) = when (state) {
+            TelephonyManager.CALL_STATE_IDLE -> "IDLE"
+            TelephonyManager.CALL_STATE_RINGING -> "RINGING"
+            TelephonyManager.CALL_STATE_OFFHOOK -> "OFFHOOK"
+            else -> "UNKNOWN($state)"
+        }
+
+        private fun focusChangeName(change: Int) = when (change) {
+            AudioManager.AUDIOFOCUS_GAIN -> "GAIN"
+            AudioManager.AUDIOFOCUS_LOSS -> "LOSS"
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> "LOSS_TRANSIENT"
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> "LOSS_TRANSIENT_CAN_DUCK"
+            else -> "UNKNOWN($change)"
         }
     }
 

@@ -89,4 +89,37 @@ class MorseEncoderTest {
         val expected = ".- / -..."
         assertEquals(expected, MorseEncoder.encode(input))
     }
+
+    @Test
+    fun `encode converts German umlauts to their Morse letters`() {
+        assertEquals(".-.-", MorseEncoder.encode("Ä"))
+        assertEquals("---.", MorseEncoder.encode("Ö"))
+        assertEquals("..--", MorseEncoder.encode("Ü"))
+        assertEquals(".-.-", MorseEncoder.encode("ä"))
+        // Jürgen
+        assertEquals(".--- ..-- .-. --. . -.", MorseEncoder.encode("Jürgen"))
+    }
+
+    @Test
+    fun `encode converts sharp s to SS`() {
+        // Strauß -> STRAUSS
+        assertEquals("... - .-. .- ..- ... ...", MorseEncoder.encode("Strauß"))
+    }
+
+    @Test
+    fun `encode converts letters with dedicated Morse codes`() {
+        assertEquals("..-..", MorseEncoder.encode("É"))
+        assertEquals(".--.-", MorseEncoder.encode("À"))
+        assertEquals(".--.-", MorseEncoder.encode("Å"))
+        assertEquals("--.--", MorseEncoder.encode("Ñ"))
+    }
+
+    @Test
+    fun `encode falls back to the base letter for other accented letters`() {
+        // José -> J O S É
+        assertEquals(".--- --- ... ..-..", MorseEncoder.encode("José"))
+        // François -> ç and ô have no own code: C, O
+        assertEquals("..-. .-. .- -. -.-. --- .. ...", MorseEncoder.encode("François"))
+        assertEquals(". . .", MorseEncoder.encode("èêë"))
+    }
 }

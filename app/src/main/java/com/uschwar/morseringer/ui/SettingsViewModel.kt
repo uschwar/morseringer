@@ -117,7 +117,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun stopPreview() {
-        morseCodeAudioPlayer.stop()
+        morseCodeAudioPlayer.stop("preview stop button")
         _uiState.update { it.copy(isPlaying = false) }
     }
 

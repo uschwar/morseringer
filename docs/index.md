@@ -13,7 +13,7 @@ title: Home
 ## Core Features
 
 *   **Incoming Call Interception:** Automatically detects incoming calls.
-*   **Contact Lookup:** Resolves the phone number to a display name using your device's address book.
+*   **Contact Lookup:** Resolves the phone number to a display name using your device's address book. Only the caller's display name is read, and only while the phone rings.
 *   **Morse Encoding:** Converts the display name (or "Unknown" for unknown numbers) into Morse code sequences.
 *   **Audio Playback:** Generates and plays the Morse code audio in real-time.
 *   **Customization:** Adjust Playback Speed (Words Per Minute) and Audio Frequency (Hz) to your liking.

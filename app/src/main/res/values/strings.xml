@@ -41,7 +41,7 @@
 
     <!-- Prominent Disclosure Dialog -->
     <string name="disclosure_title">Permissions Required</string>
-    <string name="disclosure_message">MorseRinger collects contact information solely to translate incoming caller names into Morse code audio. This data is processed locally on your device and is never shared, stored remotely, or transmitted.</string>
+    <string name="disclosure_message">To tell you who is calling, MorseRinger needs access to your contacts. When a call rings, the app looks up the caller\'s number in your contacts and reads only the matching display name, which it then plays as Morse code. A one-time contact picker cannot do this, because any of your contacts might be the next caller.\n\nThe name is used only for this one call. It is processed on your device and is never saved, shared or transmitted.</string>
     <string name="disclosure_accept">Accept</string>
     <string name="disclosure_decline">Decline</string>
 </resources>

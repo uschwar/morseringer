@@ -39,7 +39,7 @@
 
     <!-- Prominent Disclosure Dialog -->
     <string name="disclosure_title">Berechtigungen erforderlich</string>
-    <string name="disclosure_message">MorseRinger erfasst Kontaktinformationen ausschließlich, um die Namen eingehender Anrufer in Morsecode-Audio zu übersetzen. Diese Daten werden lokal auf Ihrem Gerät verarbeitet und niemals weitergegeben, extern gespeichert oder übertragen.</string>
+    <string name="disclosure_message">Damit Sie hören, wer anruft, benötigt MorseRinger Zugriff auf Ihre Kontakte. Wenn ein Anruf eingeht, sucht die App die Nummer des Anrufers in Ihren Kontakten und liest nur den passenden Anzeigenamen, der dann als Morsecode abgespielt wird. Eine einmalige Kontaktauswahl reicht dafür nicht aus, da jeder Ihrer Kontakte der nächste Anrufer sein kann.\n\nDer Name wird nur für diesen einen Anruf verwendet. Er wird lokal auf Ihrem Gerät verarbeitet und niemals gespeichert, weitergegeben oder übertragen.</string>
     <string name="disclosure_accept">Akzeptieren</string>
     <string name="disclosure_decline">Ablehnen</string>
 </resources>

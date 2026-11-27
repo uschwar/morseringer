@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.uschwar.morseringer.MorseRingerApp
@@ -21,10 +22,12 @@ import com.uschwar.morseringer.R
  */
 class MorseForegroundService : Service() {
 
+    private val tag = "MorseForegroundService"
     private val notificationId = 1001
     private val channelId = "morse_ringer_playback_channel"
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.i(tag, "onStartCommand startId=$startId flags=$flags")
         createNotificationChannel()
         val notification = createNotification()
         
@@ -34,10 +37,12 @@ class MorseForegroundService : Service() {
             notification,
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
         )
+        Log.i(tag, "startForeground done, foregroundServiceType=$foregroundServiceType")
 
         val phoneNumber = intent?.getStringExtra(EXTRA_PHONE_NUMBER)
         
         if (phoneNumber == null) {
+            Log.w(tag, "No phone number extra - stopping")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -49,9 +54,21 @@ class MorseForegroundService : Service() {
     }
 
     override fun onDestroy() {
+        Log.i(tag, "onDestroy")
         val container = (application as MorseRingerApp).container
-        container.morseCodeAudioPlayer.stopPlaybackOnly()
+        container.morseCodeAudioPlayer.stopPlaybackOnly("foreground service destroyed")
         super.onDestroy()
+    }
+
+    /** Called by the system (API 35+) when it times out this foreground service. */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        // No super call: the base method is API 35+ and does nothing.
+        Log.w(tag, "onTimeout startId=$startId fgsType=$fgsType")
+    }
+
+    override fun onTrimMemory(level: Int) {
+        Log.w(tag, "onTrimMemory level=$level")
+        super.onTrimMemory(level)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

@@ -1,5 +1,7 @@
 package com.uschwar.morseringer.domain
 
+import java.text.Normalizer
+
 /**
  * Pure domain logic for translating alphanumeric text into International Morse Code.
  * 
@@ -25,11 +27,28 @@ object MorseEncoder {
         '/' to "-..-.", '(' to "-.--.", ')' to "-.--.-", '&' to ".-...", ':' to "---...",
         ';' to "-.-.-.", '=' to "-...-", '+' to ".-.-.", '-' to "-....-", '_' to "..--.-",
         '"' to ".-..-.", '$' to "...-..-", '@' to ".--.-.",
+        // Non-English letters with their own Morse code.
+        'Ä' to ".-.-", 'Ö' to "---.", 'Ü' to "..--", 'É' to "..-..",
+        'À' to ".--.-", 'Å' to ".--.-", 'Ñ' to "--.--",
     )
+
+    private val combiningMarks = Regex("\\p{Mn}+")
+
+    /**
+     * Looks up [char]; accented letters without a code of their own
+     * (e.g. Ç, Ô, È) fall back to their unaccented base letter.
+     */
+    private fun encodeChar(char: Char): String =
+        charToMorse[char]
+            ?: Normalizer.normalize(char.toString(), Normalizer.Form.NFD)
+                .replace(combiningMarks, "")
+                .singleOrNull()
+                ?.let { charToMorse[it] }
+            ?: UNKNOWN_CHAR_MORSE
 
     fun encode(text: String): String =
         text.trim().uppercase().split(Regex("\\s+")).joinToString(WORD_SEPARATOR) { word ->
-            word.map { charToMorse.getOrDefault(it, UNKNOWN_CHAR_MORSE) }
+            word.map(::encodeChar)
                 .joinToString(LETTER_SEPARATOR)
         }
 }
