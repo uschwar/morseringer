@@ -31,7 +31,11 @@ android {
     defaultConfig {
         applicationId = "com.uschwar.morseringer"
         minSdk = 31
-        targetSdk = 37
+        // Stay on 36: Android 17's background audio hardening mutes apps that
+        // target 37 unless their foreground service has while-in-use
+        // capability, which a service started from call screening never gets.
+        // https://developer.android.com/about/versions/17/changes/bg-audio
+        targetSdk = 36
         versionCode = 5
         versionName = "26.05.1"
 
