@@ -1,6 +1,5 @@
 *.iml
 .gradle
-gradle
 .idea
 /local.properties
 .DS_Store
@@ -11,5 +10,3 @@ build
 local.properties
 keystore.properties
 morseringer-release.keystore
-/gradlew
-/gradlew.bat
