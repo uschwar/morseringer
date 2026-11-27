@@ -34,9 +34,11 @@ class MorseCodeAudioPlayer(private val context: Context) {
     private val telephonyManager = context.getSystemService(TelephonyManager::class.java)
     private val audioManager = context.getSystemService(AudioManager::class.java)
 
+    @Volatile
     private var playbackJob: Job? = null
     private val playerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    @Volatile
     private var telephonyCallback: TelephonyCallback? = null
     private var audioTrack: AudioTrack? = null
     private val trackLock = Any()
@@ -49,7 +51,18 @@ class MorseCodeAudioPlayer(private val context: Context) {
         stopPlaybackOnly()
         registerTelephonyObserver()
 
-        playbackJob = playerScope.launch {
+        // LAZY start: `playbackJob` must be assigned before the body runs,
+        // because the streaming loop checks `playbackJob?.isActive`.
+        val job = playerScope.launch(start = CoroutineStart.LAZY) {
+            val thisJob = coroutineContext[Job]
+            // Safety net: never ring longer than MAX_RINGING_MS, e.g. when the
+            // telephony observer could not be registered or missed a state.
+            launch {
+                delay(MAX_RINGING_MS)
+                Log.w(tag, "Safety timeout reached - stopping playback")
+                thisJob?.cancel()
+            }
+
             val focusRequest = requestAudioFocus()
 
             try {
@@ -59,14 +72,20 @@ class MorseCodeAudioPlayer(private val context: Context) {
 
                 playContinuousLoop(morseSequence, settings)
             } catch (_: CancellationException) {
-                // Playback stopped intentionally
+                // Playback stopped intentionally or by the safety timeout
             } catch (e: Exception) {
                 Log.e(tag, "Unexpected error during playback", e)
             } finally {
                 forceReleaseHardwareResources()
                 abandonAudioFocus(focusRequest)
+                // Still the current job => playback ended on its own (timeout,
+                // error, no AudioTrack) rather than via stop()/a newer request.
+                // Tear down the foreground service so its notification goes away.
+                if (playbackJob === thisJob) stop()
             }
         }
+        playbackJob = job
+        job.start()
     }
 
     private fun requestAudioFocus(): AudioFocusRequest? {
@@ -92,7 +111,7 @@ class MorseCodeAudioPlayer(private val context: Context) {
     fun playPreview(morseSequence: String) {
         stopPlaybackOnly()
 
-        playbackJob = playerScope.launch {
+        val job = playerScope.launch(start = CoroutineStart.LAZY) {
             try {
                 val container = (context.applicationContext as MorseRingerApp).container
                 val settings = container.settingsRepository.settingsFlow.first()
@@ -113,6 +132,8 @@ class MorseCodeAudioPlayer(private val context: Context) {
                 forceReleaseHardwareResources()
             }
         }
+        playbackJob = job
+        job.start()
     }
 
     fun stop() {
@@ -351,9 +372,17 @@ class MorseCodeAudioPlayer(private val context: Context) {
         if (telephonyCallback != null) return
 
         telephonyCallback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+            // Call screening runs before the phone starts ringing, and the
+            // callback reports the current state right after registration.
+            // That initial state can still be IDLE, so IDLE only counts as
+            // "call ended" once RINGING has been seen.
+            private var hasRung = false
+
             override fun onCallStateChanged(state: Int) {
-                if (state == TelephonyManager.CALL_STATE_OFFHOOK || state == TelephonyManager.CALL_STATE_IDLE) {
-                    stop()
+                when (state) {
+                    TelephonyManager.CALL_STATE_RINGING -> hasRung = true
+                    TelephonyManager.CALL_STATE_OFFHOOK -> stop()
+                    TelephonyManager.CALL_STATE_IDLE -> if (hasRung) stop()
                 }
             }
         }.also {
@@ -364,6 +393,11 @@ class MorseCodeAudioPlayer(private val context: Context) {
                 telephonyCallback = null
             }
         }
+    }
+
+    companion object {
+        /** Hard upper bound for incoming-call playback. */
+        const val MAX_RINGING_MS = 60_000L
     }
 
     private fun unregisterTelephonyObserver() {
