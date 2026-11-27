@@ -13,6 +13,10 @@ private const val TAG = "MorseRingerRepo"
  * 
  * This repository handles the low-level query logic and provides a safe 
  * way to retrieve display names while handling permission or query failures.
+ *
+ * Contacts access must stay minimal (Play Contacts permission policy, see the
+ * READ_CONTACTS declaration): one lookup for the ringing number, projecting only
+ * DISPLAY_NAME. Do not widen the projection, cache results or log the name/number.
  */
 class ContactRepositoryImpl(private val context: Context) : ContactRepository {
 
