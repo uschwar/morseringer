@@ -100,9 +100,9 @@ Contact information is read **on-device only**, used solely to translate caller 
 
 Requirements:
 
-- JDK 21
+- JDK 21 (auto-provisioned via the Gradle toolchain resolver if not installed)
 - Android SDK 37 (compileSdk) / minSdk 31 / targetSdk 37
-- Android Gradle Plugin 9.2.0 · Kotlin 2.3.21
+- Android Gradle Plugin 9.5.3 · Kotlin 2.3.21
 
 ### Release signing
 
